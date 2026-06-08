@@ -1,0 +1,142 @@
+# =====================================================
+# Statistical Validation of GASENet
+# =====================================================
+
+import numpy as np
+import pandas as pd
+
+from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.metrics import accuracy_score
+from scipy.stats import ttest_rel, t
+
+# =====================================================
+# Define Repeated CV
+# =====================================================
+
+cv = RepeatedStratifiedKFold(
+    n_splits=10,
+    n_repeats=10,
+    random_state=42
+)
+
+# =====================================================
+# Storage
+# =====================================================
+
+gasenet_scores = []
+svc_scores = []
+mlp_scores = []
+rfc_scores = []
+xgb_scores = []
+gbc_scores = []
+
+# =====================================================
+# Cross Validation
+# =====================================================
+
+for train_idx, test_idx in cv.split(X, y):
+
+    X_train = X.iloc[train_idx]
+    X_test  = X.iloc[test_idx]
+
+    y_train = y.iloc[train_idx]
+    y_test  = y.iloc[test_idx]
+
+    # Train models
+
+    gasenet.fit(X_train, y_train)
+    svc.fit(X_train, y_train)
+    mlp.fit(X_train, y_train)
+    rfc.fit(X_train, y_train)
+    xgb.fit(X_train, y_train)
+    gbc.fit(X_train, y_train)
+
+    # Predictions
+
+    pred_gasenet = gasenet.predict(X_test)
+    pred_svc = svc.predict(X_test)
+    pred_mlp = mlp.predict(X_test)
+    pred_rfc = rfc.predict(X_test)
+    pred_xgb = xgb.predict(X_test)
+    pred_gbc = gbc.predict(X_test)
+
+    # Accuracy
+
+    gasenet_scores.append(
+        accuracy_score(y_test,pred_gasenet)
+    )
+
+    svc_scores.append(
+        accuracy_score(y_test,pred_svc)
+    )
+
+    mlp_scores.append(
+        accuracy_score(y_test,pred_mlp)
+    )
+
+    rfc_scores.append(
+        accuracy_score(y_test,pred_rfc)
+    )
+
+    xgb_scores.append(
+        accuracy_score(y_test,pred_xgb)
+    )
+
+    gbc_scores.append(
+        accuracy_score(y_test,pred_gbc)
+    )
+
+# =====================================================
+# Confidence Interval Function
+# =====================================================
+
+def compute_ci(values):
+
+    mean = np.mean(values)
+
+    sem = np.std(values, ddof=1) / np.sqrt(len(values))
+
+    ci = t.ppf(0.975, len(values)-1) * sem
+
+    return mean, mean-ci, mean+ci
+
+# =====================================================
+# GASENet Confidence Interval
+# =====================================================
+
+mean_acc, lower_acc, upper_acc = compute_ci(gasenet_scores)
+
+print("Accuracy Mean :", round(mean_acc*100,2))
+print("95% CI :", 
+      f"[{lower_acc*100:.2f}, {upper_acc*100:.2f}]")
+
+# =====================================================
+# Paired t-tests
+# =====================================================
+
+print("\nP VALUES")
+
+print(
+    "GASENet vs SVC:",
+    ttest_rel(gasenet_scores, svc_scores).pvalue
+)
+
+print(
+    "GASENet vs MLP:",
+    ttest_rel(gasenet_scores, mlp_scores).pvalue
+)
+
+print(
+    "GASENet vs RFC:",
+    ttest_rel(gasenet_scores, rfc_scores).pvalue
+)
+
+print(
+    "GASENet vs XGB:",
+    ttest_rel(gasenet_scores, xgb_scores).pvalue
+)
+
+print(
+    "GASENet vs GBC:",
+    ttest_rel(gasenet_scores, gbc_scores).pvalue
+)
